@@ -1,0 +1,12 @@
+#!/bin/bash
+
+[[ $# -ne 2 ]] && { echo "usage: $(basename $0) <input.jar> <output.sh>"; exit 2; }
+
+input="$1"
+output="$2"
+
+[[ -f "$input" ]] && {
+  echo "#!$(which java) -jar" > "$output"
+  cat "$input" >> "$output"
+  chmod +x "$output"
+}

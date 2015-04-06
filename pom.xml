@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <prerequisites><maven>3.0.0</maven></prerequisites>
+
+    <groupId>kafka.tools</groupId>
+    <artifactId>kafka-tools-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>kafka-tools</name>
+    <description>Unix command line tools for Kafka 0.7.x</description>
+
+    <properties>
+        <scala.major>2.10</scala.major>
+        <scala.minor>4</scala.minor>
+        <scala.version>${scala.major}.${scala.minor}</scala.version>
+        <kafka.version>0.7.2</kafka.version>
+        <project.repository>kirkland-sak</project.repository>
+        <mainClass>kafka.tools.consumer</mainClass>
+        <scala.plugin.version>3.1.6</scala.plugin.version>
+        <mainClass>kafka.tools.${project.artifactId}.run</mainClass>
+        <bin.directory>${project.basedir}/bin</bin.directory>
+    </properties>
+
+    <modules>
+        <module>producer</module>
+        <module>consumer</module>
+    </modules>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-reflect</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>kafka</groupId>
+            <artifactId>core-kafka_${scala.major}</artifactId>
+            <version>${kafka.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.sun.jmx</groupId>
+                    <artifactId>jmxri</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.jms</groupId>
+                    <artifactId>jms</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jdmk</groupId>
+                    <artifactId>jmxtools</artifactId>
+                </exclusion>
+                <!--<exclusion>-->
+                <!--<groupId>log4j</groupId>-->
+                <!--<artifactId>log4j</artifactId>-->
+                <!--</exclusion>-->
+                <!--<exclusion>-->
+                <!--<groupId>org.slf4j</groupId>-->
+                <!--<artifactId>slf4j-simple</artifactId>-->
+                <!--</exclusion>-->
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.clapper</groupId>
+            <artifactId>grizzled-slf4j_${scala.major}</artifactId>
+            <version>1.0.1</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.rogach</groupId>
+            <artifactId>scallop_${scala.major}</artifactId>
+            <version>0.9.5</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-reflect</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <profile>
+            <id>shade</id>
+            <activation>
+                <property><name>shade</name></property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <version>1.6</version>
+                        <configuration>
+                            <minimizeJar>false</minimizeJar>
+                            <createDependencyReducedPom>true</createDependencyReducedPom>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <finalName>${project.artifactId}</finalName>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>shade</goal>
+                                </goals>
+                                <configuration>
+                                    <transformers>
+                                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                            <mainClass>${mainClass}</mainClass>
+                                        </transformer>
+                                    </transformers>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+    <repositories>
+        <!-- Add some additional useful Java OSS repos -->
+        <repository>
+            <id>sonatype-oss</id>
+            <name>Sonatype OSS</name>
+            <url>https://oss.sonatype.org/content/groups/public/</url>
+        </repository>
+    </repositories>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>${scala.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

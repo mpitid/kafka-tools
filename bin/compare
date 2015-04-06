@@ -1,0 +1,21 @@
+#!/bin/bash
+
+[[ $# -lt 2 ]] && { echo "usage: $(basename $0) <server> <file> [sleep=2s]"; exit 1; }
+
+SERVER="$1"
+INPUT="$2"
+SLEEP="${3:-2s}"
+
+HASH="$(md5sum $INPUT | awk '{print$1}')"
+TOPIC="${HASH}_$(date +%s)"
+
+$(dirname $0)/producer < "$INPUT" --server "$SERVER" --partition 0 --topic "$TOPIC"
+
+sleep "$SLEEP"
+
+OUTPUT=$($(dirname $0)/consumer --server "$SERVER" --partition 0 --topic "$TOPIC" | md5sum | awk '{print$1}') 
+
+if [[ "$HASH" != "$OUTPUT" ]]; then
+  echo "output hash $OUTPUT does not match input hash $HASH for topic $TOPIC"
+  exit 2
+fi
