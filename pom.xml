@@ -17,8 +17,6 @@
         <scala.minor>4</scala.minor>
         <scala.version>${scala.major}.${scala.minor}</scala.version>
         <kafka.version>0.7.2</kafka.version>
-        <project.repository>kirkland-sak</project.repository>
-        <mainClass>kafka.tools.consumer</mainClass>
         <scala.plugin.version>3.1.6</scala.plugin.version>
         <mainClass>kafka.tools.${project.artifactId}.run</mainClass>
         <bin.directory>${project.basedir}/bin</bin.directory>
