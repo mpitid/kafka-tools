@@ -4,7 +4,7 @@
     <prerequisites><maven>3.0.0</maven></prerequisites>
 
     <groupId>kafka.tools</groupId>
-    <artifactId>kafka-tools-parent</artifactId>
+    <artifactId>parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
@@ -12,6 +12,7 @@
     <description>Unix command line tools for Kafka 0.7.x</description>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <scala.major>2.10</scala.major>
         <scala.minor>4</scala.minor>
         <scala.version>${scala.major}.${scala.minor}</scala.version>
@@ -26,6 +27,7 @@
     <modules>
         <module>producer</module>
         <module>consumer</module>
+        <module>rpm</module>
     </modules>
 
     <dependencies>
@@ -100,9 +102,6 @@
     <profiles>
         <profile>
             <id>shade</id>
-            <activation>
-                <property><name>shade</name></property>
-            </activation>
             <build>
                 <plugins>
                     <plugin>
@@ -114,6 +113,11 @@
                             <createDependencyReducedPom>true</createDependencyReducedPom>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <finalName>${project.artifactId}</finalName>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>kafka.tools:kafka-tools</exclude>
+                                </excludes>
+                            </artifactSet>
                         </configuration>
                         <executions>
                             <execution>

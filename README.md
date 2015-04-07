@@ -15,10 +15,22 @@ java -jar consumer/target/consumer.jar --help
 
 Alternatively, if you have GNU make installed, run `make` to build the shaded jars and bundle them into executable scripts under the `bin` directory.
 
+Finally, Maven can generate an RPM by running `mvn package`. Once installed, that will create its own `kafka-consumer` and `kafka-producer` scripts.
+
 ## Examples
 
-```bash
-echo -e "hello\nworld" | ./bin/producer.sh -s localhost:9091 -t test
-./bin/consumer.sh > p0.json -s localhost:9091 -p 0 -t test --last-offset
-  30
-```
+1.  Using the shaded scripts:
+
+    ```bash
+    echo -e "hello\nworld" | ./bin/producer.sh -s localhost:9091 -t test
+    ./bin/consumer.sh > p0.json -s localhost:9091 -p 0 -t test --last-offset
+      30
+    ```
+
+2.  or using the scripts installed by the RPM:
+
+    ```bash
+    echo -e "hello\nworld" | kafka-producer -s localhost:9091 -t test
+    kafka-consumer > p0.json -s localhost:9091 -p 0 -t test --last-offset
+      30
+    ```
