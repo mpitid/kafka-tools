@@ -6,12 +6,12 @@
     <parent>
         <groupId>kafka.tools</groupId>
         <artifactId>parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>kafka-tools</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
     <packaging>rpm</packaging>
 
     <name>kafka-tools</name>
@@ -27,12 +27,12 @@
         <dependency>
             <groupId>kafka.tools</groupId>
             <artifactId>consumer</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>0.0.1</version>
         </dependency>
         <dependency>
             <groupId>kafka.tools</groupId>
             <artifactId>producer</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>0.0.1</version>
         </dependency>
     </dependencies>
 
