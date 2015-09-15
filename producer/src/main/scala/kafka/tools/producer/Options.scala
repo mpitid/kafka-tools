@@ -20,9 +20,9 @@ package kafka.tools.producer
 import org.rogach.scallop.ScallopConf
 
 class Options(args: Seq[String]) extends ScallopConf(args) {
-  val topic = opt[String](required = true, descr = "the topic to consume from")
-  val partition = opt[Int](default = Some(0), descr = "the partition to consume from")
-  val messageSize = opt[Int](default = Some(1000000), descr = "maximum message size for each request")
+  val topic = opt[String](required = true, descr = "the topic to write to")
+  val partition = opt[Int](default = None, descr = "the partition to write to")
+  val messageSize = opt[Int](default = Some(1000000), descr = "maximum message size for each send")
   val server = opt[String](required = true, descr = "the hostname of the server to connect to", argName = "[kafka://]hostname:port")
   val socketTimeout = opt[Int](default = Some(10000), descr = "the socket timeout in seconds")
   val socketBufferSize = opt[Int](default = Some(64 * 1024), descr = "the socket buffer size in bytes")
