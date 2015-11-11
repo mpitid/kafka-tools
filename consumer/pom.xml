@@ -20,4 +20,5 @@
     <properties>
         <mainClass>kafka.tools.consumer.run</mainClass>
     </properties>
+
 </project>

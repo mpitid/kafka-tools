@@ -17,61 +17,98 @@
 
 package kafka.tools.producer
 
-import java.net.URI
+import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import kafka.admin.AdminUtils
+import kafka.producer.{KeyedMessage, ProducerConfig}
+import kafka.tools.producer.Reader.{ReaderOptions, Bytes, JsonReader, SimpleReader}
+import kafka.utils.ZkUtils
+import org.I0Itec.zkclient.ZkClient
+import org.I0Itec.zkclient.exception.ZkMarshallingError
+import org.I0Itec.zkclient.serialize.ZkSerializer
 
-import kafka.message.{ByteBufferMessageSet, CompressionCodec, Message}
-import kafka.producer.{SyncProducer, SyncProducerConfig}
-
-import collection.mutable.ListBuffer
+import scala.collection.mutable.ListBuffer
+import scala.util.control.NonFatal
 
 class Producer {
+  private[this] val logger = org.log4s.getLogger
 
-  type Bytes = Array[Byte]
+  def encode(topic: String, partition: Int, data: Seq[(Option[Bytes], Option[Bytes])]) = {
+    data.map {
+      case (k, v) => KeyedMessage(topic, k.orNull, partition, v.orNull)
+    }
+  }
 
   def produce(options: Options): Unit = {
-    val server = options.server()
-    val url = new URI(if (server.startsWith("kafka://")) server else "kafka://" + server)
+    val server = options.server().replace("kafka://", "").replace("zookeeper://", "")
     val topic = options.topic()
+    val partition = options.partition()
 
     val properties = props(
-      "host" -> url.getHost
-    , "port" -> url.getPort
-    , "buffer.size" -> options.socketBufferSize()
-    , "socket.timeout.ms" -> options.socketTimeout()
-    , "connect.timeout.ms" -> options.connectTimeout()
-    , "reconnect.interval" -> options.reconnectInterval()
-    , "reconnect.time.interval.ms" -> options.reconnectTimeInterval()
-    , "max.message.size" -> options.messageSize()
+      "metadata.broker.list" -> server
+    , "message.send.max.retries" -> options.retries()
+    , "retry.backoff.ms" -> options.retryBackoff()
+    , "client.id" -> options.clientId()
+    , "send.buffer.bytes" -> options.socketBufferSize()
+    , "request.timeout.ms" -> options.socketTimeout()
+    , "request.required.acks" -> options.acks()
+    , "topic.metadata.refresh.interval.ms" -> options.topicRefresh()
+    , "producer.type" -> "sync"
+    , "compression.codec" -> options.codec()
+    //, "min.isr" -> 2 // This is ignored due to a bug in Kafka auto-creation.
     )
 
-    val producer = new SyncProducer(new SyncProducerConfig(properties))
+    val producer = new kafka.producer.Producer[Bytes, Bytes](new ProducerConfig(properties))
     try {
-      val send = options.partition.get match {
-        case Some(p) => producer.send(topic, p, _: ByteBufferMessageSet)
-        case None => producer.send(topic, _: ByteBufferMessageSet)
+      if (!(options.keys() || options.values() || options.createTopic() || options.updateTopic())) {
+        throw new Exception(s"nothing to do; run this program with --help for a list of options")
       }
 
-      val codec = CompressionCodec.getCompressionCodec(options.codec())
-      def encode(data: Seq[Bytes]) = {
-        new ByteBufferMessageSet(codec, data.map(new Message(_)): _*)
-      }
-
-      val batch = new ListBuffer[Bytes]
-      var size = 0L
-      for (line <- scala.io.Source.stdin.getLines()) {
-        val bytes = line.getBytes(options.charset())
-        size += bytes.size
-        if (size >= options.messageSize()) {
-          size = bytes.size
-          send(encode(batch))
-          batch.clear()
+      if (options.createTopic() || options.updateTopic()) {
+        if (options.replicas.isEmpty) {
+          throw new Exception(s"you need to specify a replication factor when creating or updating a topic")
         }
-        batch.append(bytes)
+        val zk = new ZkClient(server, options.zkSessionTimeout(), options.zkConnectionTimeout(), ZKStringSerializer)
+        createTopic(zk, topic, partition, options.replicas(), options.minIsr.get, options.updateTopic())
+      } else {
+        val readOpts = ReaderOptions(
+          options.jsonKey.get.filter(_ => options.keys())
+        , options.jsonValue.get.filter(_ => options.values())
+        , options.charset()
+        , options.fieldSeparator()
+        , options.ignoreMissing()
+        )
+        val reader = if (options.json()) { new JsonReader(readOpts) } else { new SimpleReader(readOpts) }
+        val batch = new ListBuffer[(Option[Bytes], Option[Bytes])]
+        var size = 0L
+        for (line <- scala.io.Source.stdin.getLines()) {
+          val bytes = reader.read(line)
+          val entrySize = bytes._1.map(_.length).getOrElse(0) + bytes._2.map(_.length).getOrElse(0)
+          size += entrySize
+          if (size >= options.messageSize()) {
+            size = entrySize
+            producer.send(encode(topic, partition, batch): _*)
+            batch.clear()
+          }
+          batch.append(bytes)
+        }
+        if (batch.nonEmpty) {
+          producer.send(encode(topic, partition, batch): _*)
+        }
       }
-      if (batch.nonEmpty) {
-        send(encode(batch))
-      }
+    } catch {
+      case NonFatal(e) =>
+        System.err.println(s"fatal ${e.getClass.getName}: ${e.getMessage}")
+        if (options.logErrors()) { logger.error(e)("fatal error") }
+        System.exit(1)
     } finally producer.close()
+  }
+
+  def createTopic(zk: ZkClient, topic: String, partitions: Int, replicas: Int, minISR: Option[Int], update: Boolean) = {
+    val brokers = ZkUtils.getSortedBrokerList(zk)
+    val assignment = AdminUtils.assignReplicasToBrokers(brokers, partitions, replicas)
+    val config = minISR.map(m => props(s"min.insync.replicas" -> m)).getOrElse(props())
+    AdminUtils.createOrUpdateTopicPartitionAssignmentPathInZK(zk, topic, assignment, config, update = update)
   }
 
   def props(items: (String, Any)*): java.util.Properties = {
@@ -80,4 +117,46 @@ class Producer {
       p.setProperty(k, v.toString)
     p
   }
+}
+
+sealed trait Reader {
+  def read(entry: String): (Option[Bytes], Option[Bytes])
+}
+
+object Reader {
+  type Bytes = Array[Byte]
+  case class ReaderOptions(keys: Option[String], values: Option[String], charset: String, separator: String, ignoreMissing: Boolean)
+  class SimpleReader(options: ReaderOptions) extends Reader {
+    def read(entry: String): (Option[Bytes], Option[Bytes]) = {
+      (options.keys, options.values) match {
+        case (Some(_), Some(_)) =>
+          entry.split(options.separator, 2) match {
+            case Array(key, payload) =>
+              (Some(key.getBytes(options.charset)), Some(payload.getBytes(options.charset)))
+            case _ =>
+              throw new Exception(s"could not extract key and payload from message with separator `${options.separator}`")
+          }
+        case _ =>
+          (options.keys.map(_.getBytes(options.charset)), options.values.map(_.getBytes(options.charset)))
+      }
+    }
+  }
+  class JsonReader(options: ReaderOptions) extends Reader {
+    val mapper = new ObjectMapper()
+    mapper.registerModule(DefaultScalaModule)
+    def read(entry: String): (Option[Bytes], Option[Bytes]) = {
+      val doc = mapper.readValue(entry, classOf[JsonNode])
+      (options.keys.flatMap(extract(doc, _)), options.values.flatMap(extract(doc, _)))
+    }
+    protected def extract(doc: JsonNode, field: String): Option[Bytes] = {
+      Option(doc.path(field).asText(null)).map(_.getBytes(options.charset)).ensuring(options.ignoreMissing || _.nonEmpty, s"missing input field `$field`")
+    }
+  }
+}
+
+object ZKStringSerializer extends ZkSerializer {
+  @throws(classOf[ZkMarshallingError])
+  def serialize(data : Object) : Array[Byte] = { data.asInstanceOf[String].getBytes("UTF-8") }
+  @throws(classOf[ZkMarshallingError])
+  def deserialize(bytes : Array[Byte]) : Object = { Option(bytes).map(b => new String(b, "UTF-8")).orNull }
 }

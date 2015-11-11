@@ -13,13 +13,14 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <scala.major>2.10</scala.major>
-        <scala.minor>4</scala.minor>
+        <scala.major>2.11</scala.major>
+        <scala.minor>2</scala.minor>
         <scala.version>${scala.major}.${scala.minor}</scala.version>
-        <kafka.version>0.7.2</kafka.version>
+        <kafka.version>0.8.2.2</kafka.version>
         <scala.plugin.version>3.1.6</scala.plugin.version>
         <mainClass>kafka.tools.${project.artifactId}.run</mainClass>
         <bin.directory>${project.basedir}/bin</bin.directory>
+        <jackson.version>2.6.3</jackson.version>
     </properties>
 
     <modules>
@@ -41,37 +42,40 @@
         </dependency>
 
         <dependency>
-            <groupId>kafka</groupId>
-            <artifactId>core-kafka_${scala.major}</artifactId>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-scala_${scala.major}</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_${scala.major}</artifactId>
             <version>${kafka.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>com.sun.jmx</groupId>
                     <artifactId>jmxri</artifactId>
+                    <groupId>com.sun.jmx</groupId>
                 </exclusion>
                 <exclusion>
-                    <groupId>javax.jms</groupId>
                     <artifactId>jms</artifactId>
+                    <groupId>javax.jms</groupId>
                 </exclusion>
                 <exclusion>
-                    <groupId>com.sun.jdmk</groupId>
                     <artifactId>jmxtools</artifactId>
+                    <groupId>com.sun.jdmk</groupId>
                 </exclusion>
-                <!--<exclusion>-->
-                <!--<groupId>log4j</groupId>-->
-                <!--<artifactId>log4j</artifactId>-->
-                <!--</exclusion>-->
-                <!--<exclusion>-->
-                <!--<groupId>org.slf4j</groupId>-->
-                <!--<artifactId>slf4j-simple</artifactId>-->
-                <!--</exclusion>-->
             </exclusions>
         </dependency>
 
         <dependency>
-            <groupId>org.clapper</groupId>
-            <artifactId>grizzled-slf4j_${scala.major}</artifactId>
-            <version>1.0.1</version>
+            <groupId>org.log4s</groupId>
+            <artifactId>log4s_${scala.major}</artifactId>
+            <version>1.2.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.scala-lang</groupId>
