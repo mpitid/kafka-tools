@@ -4,30 +4,26 @@
     <prerequisites><maven>3.0.0</maven></prerequisites>
 
     <groupId>kafka.tools</groupId>
-    <artifactId>parent</artifactId>
+    <artifactId>kafka8-tools</artifactId>
     <version>0.0.1</version>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
 
     <name>kafka-tools</name>
-    <description>Unix command line tools for Kafka 0.7.x</description>
+    <description>Unix command line tools for Kafka 0.8.x</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <scala.major>2.11</scala.major>
-        <scala.minor>2</scala.minor>
+        <scala.minor>7</scala.minor>
         <scala.version>${scala.major}.${scala.minor}</scala.version>
         <kafka.version>0.8.2.2</kafka.version>
         <scala.plugin.version>3.1.6</scala.plugin.version>
-        <mainClass>kafka.tools.${project.artifactId}.run</mainClass>
+        <mainClass>kafka.tools.cli</mainClass>
         <bin.directory>${project.basedir}/bin</bin.directory>
         <jackson.version>2.6.3</jackson.version>
+        <project.prefix>/usr</project.prefix>
+        <project.location>${project.prefix}/share/${project.artifactId}</project.location>
     </properties>
-
-    <modules>
-        <module>producer</module>
-        <module>consumer</module>
-        <module>rpm</module>
-    </modules>
 
     <dependencies>
         <dependency>
@@ -69,6 +65,18 @@
                     <artifactId>jmxtools</artifactId>
                     <groupId>com.sun.jdmk</groupId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                </exclusion>
+                <!--<exclusion>-->
+                    <!--<groupId>org.scala-lang.modules</groupId>-->
+                    <!--<artifactId>scala-xml_${scala.major}</artifactId>-->
+                <!--</exclusion>-->
+                <!--<exclusion>-->
+                    <!--<groupId>org.scala-lang.modules</groupId>-->
+                    <!--<artifactId>scala-parser-combinators_${scala.major}</artifactId>-->
+                <!--</exclusion>-->
             </exclusions>
         </dependency>
 
@@ -142,14 +150,6 @@
             </build>
         </profile>
     </profiles>
-    <repositories>
-        <!-- Add some additional useful Java OSS repos -->
-        <repository>
-            <id>sonatype-oss</id>
-            <name>Sonatype OSS</name>
-            <url>https://oss.sonatype.org/content/groups/public/</url>
-        </repository>
-    </repositories>
     <build>
         <plugins>
             <plugin>
@@ -165,6 +165,55 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>rpm-maven-plugin</artifactId>
+                <version>2.1.4</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>attached-rpm</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <group>Applications/Internet</group>
+                    <license>LGPL 2.1</license>
+                    <prefix>${project.prefix}</prefix>
+                    <!-- make sure directories are created separately from files for cleaner permissions -->
+                    <mappings>
+                        <!-- Install main JAR files and dependencies -->
+                        <mapping><directory>${project.location}</directory></mapping>
+                        <mapping>
+                            <directory>${project.location}</directory>
+                            <directoryIncluded>false</directoryIncluded>
+                            <dependency />
+                        </mapping>
+                        <!-- Install script and binaries -->
+                        <mapping>
+                            <directory>${project.prefix}/bin</directory>
+                            <directoryIncluded>false</directoryIncluded>
+                            <filemode>755</filemode>
+                            <username>root</username>
+                            <groupname>root</groupname>
+                            <sources>
+                                <source>
+                                    <location>bin/${project.artifactId}</location>
+                                </source>
+                            </sources>
+                        </mapping>
+                    </mappings>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
+    <repositories>
+        <repository>
+            <id>sonatype-oss</id>
+            <name>Sonatype OSS</name>
+            <url>https://oss.sonatype.org/content/groups/public/</url>
+        </repository>
+    </repositories>
 </project>
