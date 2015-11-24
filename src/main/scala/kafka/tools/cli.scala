@@ -86,7 +86,16 @@ object cli {
           }
         case Some(c @ opts.topics) =>
           val zk = new ZkClient(c.server(), c.sessionTimeout(), c.connectionTimeout(), ZKStringSerializer)
-          new Topics().createTopic(zk, c.topic(), c.partitions(), c.replicas(), c.minIsr.get, c.update())
+          val topics = new Topics()
+          if (c.create() || c.update()) {
+            topics.create(zk, c.topic(), c.partitions(), c.replicas(), c.minIsr.get, c.update())
+          } else if (c.delete()) {
+            topics.delete(zk, c.topic())
+          } else {
+            for (topic <- topics.list(zk)) {
+              println(topic)
+            }
+          }
         case _ =>
           System.err.println(s"fatal: you must specify a sub-command")
           opts.printHelp()
@@ -198,18 +207,27 @@ object cli {
     }
 
     val topics = new Subcommand("topics") {
+      footer("if no action is specified list topics")
       val server = opt[String](required = true, short = 's', descr = "ZooKeeper server to connect to", argName = "hostname:port")
-      val topic = opt[String](required = true, short = 't', descr = "topic to create/update", argName = "string")
-      val partitions = opt[Int](required = true, short = 'p', descr = "number of partitions", argName = "int")
-      val replicas = opt[Int](required = true, short = 'r', validate = _ >= 1, descr = "replication factor", argName = "int")
+      val topic = opt[String](short = 't', descr = "topic to create/update", argName = "string")
+      val partitions = opt[Int](short = 'p', descr = "number of partitions", argName = "int")
+      val replicas = opt[Int](short = 'r', validate = _ >= 1, descr = "replication factor", argName = "int")
       val minIsr = opt[Int](short = 'm', validate = pos, descr = "minimum number of nodes in ISR for a topic", argName = "int")
 
+      val create = opt[Boolean](short = 'c', descr = "create topic")
       val update = opt[Boolean](short = 'u', descr = "update topic metadata")
+      val delete = opt[Boolean](short = 'd', descr = "delete topic")
 
       val sessionTimeout = opt[Int](default = Some(10000), validate = pos, descr = "ZooKeeper session timeout", argName = "ms")
       val connectionTimeout = opt[Int](default = Some(10000), validate = pos, descr = "ZooKeeper connection timeout", argName = "ms")
       val help = opt[Boolean](short = 'h', descr = "show help message")
 
+      dependsOnAll(create, List(topic, partitions, replicas))
+      dependsOnAll(update, List(topic))
+      dependsOnAll(delete, List(topic))
+      mutuallyExclusive(create, update)
+      mutuallyExclusive(update, delete)
+      mutuallyExclusive(create, delete)
       mainOptions = Seq(server, topic, partitions, replicas, minIsr, update)
     }
 

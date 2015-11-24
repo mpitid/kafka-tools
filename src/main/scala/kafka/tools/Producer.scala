@@ -30,11 +30,25 @@ import org.I0Itec.zkclient.serialize.ZkSerializer
 import scala.collection.mutable.ListBuffer
 
 class Topics() {
-  def createTopic(zk: ZkClient, topic: String, partitions: Int, replicas: Int, minISR: Option[Int], update: Boolean) = {
+  private[this] val logger = org.log4s.getLogger
+
+  def create(zk: ZkClient, topic: String, partitions: Int, replicas: Int, minISR: Option[Int], update: Boolean) = {
     val brokers = ZkUtils.getSortedBrokerList(zk)
     val assignment = AdminUtils.assignReplicasToBrokers(brokers, partitions, replicas)
     val config = Producer.properties(minISR.map("min.insync.replicas".->).toSeq: _*)
     AdminUtils.createOrUpdateTopicPartitionAssignmentPathInZK(zk, topic, assignment, config, update = update)
+  }
+
+  def delete(zk: ZkClient, topic: String) = {
+    val topics = list(zk).toSet
+    if (topics.contains(topic)) {
+      ZkUtils.createPersistentPath(zk, ZkUtils.getDeleteTopicPath(topic))
+      logger.info(s"marked topic $topic for deletion; this will only have impact if delete.topic.enable is true")
+    }
+  }
+
+  def list(zk: ZkClient): Seq[String] = {
+    ZkUtils.getAllTopics(zk)
   }
 }
 
