@@ -160,9 +160,9 @@ class Offsets(val options: Offsets.Options, val consumerOptions: Consumer.Option
     response.coordinatorOpt match {
       case Some(broker) =>
         if (broker.connectionString == consumerOptions.connection) {
-          consumerOptions.simpleConsumer(Some(broker.host), Some(broker.port))
-        } else {
           consumer
+        } else {
+          consumerOptions.simpleConsumer(Some(broker.host), Some(broker.port))
         }
       case None =>
         throw ConsumerException(s"no offset coordinator for group ${options.groupId}")
