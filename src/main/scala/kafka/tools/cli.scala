@@ -213,7 +213,7 @@ object cli {
     }
 
     val topics = new Subcommand("topics") {
-      footer("if no action is specified list topics")
+      footer("    if no action is specified list topics")
       val server = opt[String](required = true, short = 's', descr = "ZooKeeper server to connect to", argName = "hostname:port")
       val topic = opt[String](short = 't', descr = "topic to create/update", argName = "string")
       val partitions = opt[Int](short = 'p', descr = "number of partitions", argName = "int")
