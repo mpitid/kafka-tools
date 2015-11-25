@@ -25,19 +25,43 @@ Allow storing and fetching an arbitrary number of offsets in Kafka itself withou
 
 ## Building
 
-You need to have maven 3.x to build the tools. Run `mvn clean package -P shade` to produce a shaded jar under the target directory.
+You need to have maven 3.x to build the tools. To produce a shaded jar under the target directory, run
+
+```bash
+mvn clean package -P shade
+```
 
 Alternatively, if you have GNU make installed, run `make` to build the shaded jars and bundle them into executable scripts under the `bin` directory.
 
 The shaded jar is useful if you want to distribute a single binary, although a JRE >= 6.x still needs to be present.
 
-Finally, Maven can generate an RPM by running `mvn package`. Once installed, that will create its own `kafka8-tools` wrapper script.
+Finally, you can generate an RPM script with maven by running
+
+```bash
+mvn package
+```
+
+Once installed this will create its own `kafka8-tools` wrapper script.
 
 ## Running
 
-You can run the shaded jar with `java -jar target/kafka8-tools.jar`, or the shaded scripts with `bin/kafka8-tools.sh`. If you have installed the RPM instead, just run `kafka8-tools.
+If you installed the RPM, run the following to see a full list of subcommands and command line options:
 
-To see a full list of subcommands and arguments run `kafka8-tools --help`, or for subcommand help run `kafka8-tools <command> --help`.
+```bash
+kafka8-tools --help
+```
+
+You can run the shaded jar or script instead with one of the following:
+
+```bash
+java -jar target/kafka8-tools.jar --help
+```
+
+```bash
+./bin/kafka8-tools.sh --help
+```
+
+For subcommand help, run `kafka8-tools <command> --help`.
 
 ## Examples
 
