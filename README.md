@@ -82,7 +82,7 @@ These examples assume a ZooKeeper instance on port 2181, and three Kafka brokers
     {"topic":"topic1","details":{"1":{"leader":3,"replicas":[1,2,3],"isr":[1,2,3]},"0":{"leader":2,"replicas":[1,2,3],"isr":[1,2,3]}},"deleted":false,"configuration":{"min.insync.replicas":"2"},"partitions":2,"replication":3}
     ```
 
-4.  Push space-delimited key-value pairs to the first partition of our topic, with an ISR ack-policy:
+3.  Push space-delimited key-value pairs to the first partition of our topic, with an ISR ack-policy:
 
     ```bash
     echo -e "k1 v1\nk2 v2\nk3 v3" | kafka8-tools push -s localhost:9091 -t topic1 -p 0 --acks -1 --keys --values --field-separator ' '
@@ -90,7 +90,7 @@ These examples assume a ZooKeeper instance on port 2181, and three Kafka brokers
 
     Note how even though broker 2 (port 9092) was the partition leader, no error was raised, as the leader was automatically discovered before sending the data through.
 
-5.  Push value-only data to our second partition, followed by some key-only data, with a leader-only ack-policy:
+4.  Push value-only data to our second partition, followed by some key-only data, with a leader-only ack-policy:
 
     ```bash
     echo -e "v4\nv5" | kafka8-tools push -s localhost:9092 -t topic1 -p 1 --acks 1 --values
@@ -102,7 +102,7 @@ These examples assume a ZooKeeper instance on port 2181, and three Kafka brokers
 
     Again note how we can choose any one of the replicas as our contact endpoint.
 
-6.  Pull the data out of our topic using JSON as the output format. Fetch keys and values, along with the their offsets in the partition:
+5.  Pull the data out of our topic using JSON as the output format. Fetch keys and values, along with the their offsets in the partition:
 
     ```bash
     for p in 0 1; do
@@ -124,7 +124,7 @@ These examples assume a ZooKeeper instance on port 2181, and three Kafka brokers
 
     For a full list of options when pulling data, including additional ways to determine offsets (e.g. last offset, or offset before some time), or ways to change the output schema, run `kafka8-tools pull --help`.
 
-7.  We can take advantage of Kafka's offset storage to keep track of our consumer offsets:
+6.  We can take advantage of Kafka's offset storage to keep track of our consumer offsets:
 
     ```bash
     kafka8-tools offsets -s localhost:9091 -t topic1 -p 0 -g group1 --commit 2
@@ -150,7 +150,7 @@ These examples assume a ZooKeeper instance on port 2181, and three Kafka brokers
     ```
 
 
-8.  Fetch the offset we last committed for our group:
+7.  Fetch the offset we last committed for our group:
 
     ```bash
     kafka8-tools offsets -s localhost:9092 -t topic1 -p 0 -g group1
@@ -165,7 +165,7 @@ These examples assume a ZooKeeper instance on port 2181, and three Kafka brokers
     3
     ```
 
-9.  Delete the topic:
+8.  Delete the topic:
 
     ```bash
     kafka8-tools topics -s localhost:2181 -t topic1 --delete
