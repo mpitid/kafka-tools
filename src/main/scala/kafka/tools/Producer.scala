@@ -125,7 +125,7 @@ object Producer {
               throw new Exception(s"could not extract key and payload from message with separator `${options.separator}`")
           }
         case _ =>
-          (options.keys.map(_.getBytes(options.charset)), options.values.map(_.getBytes(options.charset)))
+          (options.keys.map(_ => entry.getBytes(options.charset)), options.values.map(_ => entry.getBytes(options.charset)))
       }
     }
   }
