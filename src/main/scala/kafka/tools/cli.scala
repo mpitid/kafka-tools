@@ -154,8 +154,8 @@ object cli {
       val topicRefresh = opt[Int](default = Some(60000), validate = pos, descr = "topic metadata refresh interval", argName = "ms")
       val help = opt[Boolean](short = 'h', descr = "show help message")
       mainOptions = Seq(server, topic, partition, acks, keys, values, json)
-      validate(keys, values) {
-        case (false, false) => Left("you must specify at least one of --keys or --values")
+      validateOpt(keys, values) {
+        case (Some(false), Some(false)) => Left("you must specify at least one of --keys or --values")
         case _ => Right(Unit)
       }
     }
