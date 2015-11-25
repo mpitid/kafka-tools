@@ -190,6 +190,7 @@
                             <directory>${project.location}</directory>
                             <directoryIncluded>false</directoryIncluded>
                             <dependency />
+                            <artifact />
                         </mapping>
                         <!-- Install script and binaries -->
                         <mapping>
