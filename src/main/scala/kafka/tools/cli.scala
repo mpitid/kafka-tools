@@ -91,11 +91,17 @@ object cli {
             topics.create(zk, c.topic(), c.partitions(), c.replicas(), c.minIsr.get, c.update())
           } else if (c.delete()) {
             topics.delete(zk, c.topic())
+          } else if (c.info()) {
+            val formatter = if (c.json()) { new Topics.JsonTopicsFormatter } else { new Topics.SimpleTopicsFormatter }
+            for (info <- topics.details(zk, c.topic.get.toSet)) {
+              println(formatter.format(info))
+            }
           } else {
             for (topic <- topics.list(zk)) {
               println(topic)
             }
           }
+          zk.close()
         case _ =>
           System.err.println(s"fatal: you must specify a sub-command")
           opts.printHelp()
@@ -217,6 +223,9 @@ object cli {
       val create = opt[Boolean](short = 'c', descr = "create topic")
       val update = opt[Boolean](short = 'u', descr = "update topic metadata")
       val delete = opt[Boolean](short = 'd', descr = "delete topic")
+      val info = opt[Boolean](short = 'i', descr = "detailed topic information")
+
+      val json = opt[Boolean](short = 'j', descr = "format topic information as JSON")
 
       val sessionTimeout = opt[Int](default = Some(10000), validate = pos, descr = "ZooKeeper session timeout", argName = "ms")
       val connectionTimeout = opt[Int](default = Some(10000), validate = pos, descr = "ZooKeeper connection timeout", argName = "ms")
@@ -225,9 +234,10 @@ object cli {
       dependsOnAll(create, List(topic, partitions, replicas))
       dependsOnAll(update, List(topic))
       dependsOnAll(delete, List(topic))
-      mutuallyExclusive(create, update)
-      mutuallyExclusive(update, delete)
-      mutuallyExclusive(create, delete)
+      val commands = Seq(create, update, delete, info)
+      for (i <- 0 until commands.size; j <- (i+1) until commands.size) {
+        mutuallyExclusive(commands(i), commands(j))
+      }
       mainOptions = Seq(server, topic, partitions, replicas, minIsr, update)
     }
 

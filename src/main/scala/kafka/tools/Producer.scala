@@ -50,6 +50,50 @@ class Topics() {
   def list(zk: ZkClient): Seq[String] = {
     ZkUtils.getAllTopics(zk)
   }
+
+  def details(zk: ZkClient, whitelist: Set[String] = Set()) = {
+    val topics = list(zk).filter(t => whitelist.isEmpty || whitelist(t))
+    ZkUtils.getPartitionAssignmentForTopics(zk, topics).map {
+      case (topic, assignment) =>
+        val config = AdminUtils.fetchTopicConfig(zk, topic)
+        val deleted = ZkUtils.pathExists(zk, ZkUtils.getDeleteTopicPath(topic))
+        val info = assignment.map { case (partition, replicas) =>
+          val leader = ZkUtils.getLeaderForPartition(zk, topic, partition)
+          val isr = ZkUtils.getInSyncReplicasForPartition(zk, topic, partition)
+          partition -> Topics.PartitionInfo(leader, replicas.sorted, isr.sorted)
+        }
+        Topics.TopicInfo(topic, info.toMap, deleted, Producer.asMap(config))
+    }
+  }
+}
+
+object Topics {
+  case class TopicInfo(topic: String, details: Map[Int, PartitionInfo], deleted: Boolean, configuration: Map[String, Any]) {
+    val partitions: Int = details.size
+    val replication: Int = details.values.headOption.map(_.replicas.size).getOrElse(0)
+  }
+  case class PartitionInfo(leader: Option[Int], replicas: Seq[Int], isr: Seq[Int])
+
+  sealed trait TopicsFormatter { def format(info: TopicInfo): String }
+  class JsonTopicsFormatter extends TopicsFormatter {
+    protected val mapper = new ObjectMapper()
+    mapper.registerModule(DefaultScalaModule)
+    def format(info: TopicInfo) = {
+      mapper.writeValueAsString(info)
+    }
+  }
+  class SimpleTopicsFormatter extends TopicsFormatter {
+    def format(info: TopicInfo) = {
+      val cfg = info.configuration.map { case (k, v) => s"$k=$v" }.mkString(",")
+      val details = info.details.toSeq.sortBy(_._1).map { case (p, i) =>
+        val rep = i.replicas.sorted.mkString(",")
+        val isr = i.isr.sorted.mkString(",")
+        val l = i.leader.getOrElse("none")
+        s"$p:$l:$rep:$isr"
+      }.mkString(" ")
+      s"topic ${info.topic} partitions ${info.partitions} replication ${info.replication} deleted ${info.deleted} configuration $cfg details $details"
+    }
+  }
 }
 
 class Producer(options: Producer.Options) {
@@ -154,6 +198,12 @@ object Producer {
     for ((k, v) <- items)
       p.setProperty(k, v.toString)
     p
+  }
+  import scala.collection.JavaConverters._
+  def asMap(props: java.util.Properties): Map[String, Any] = {
+    props.entrySet().asScala.map { entry =>
+      entry.getKey.toString -> entry.getValue
+    }.toMap
   }
 }
 
