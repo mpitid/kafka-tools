@@ -63,6 +63,19 @@ java -jar target/kafka8-tools.jar --help
 
 For subcommand help, run `kafka8-tools <command> --help`.
 
+To control the input/output file encoding rather than the encoding of the data read from or written to Kafka, you need to set the `file.encoding` JVM property accordingly, e.g.
+
+```bash
+java -Dfile.encoding=latin1 java -jar target/kafka8-tools.jar ...
+```
+
+or
+
+```bash
+env JAVA_OPTS=-Dfile.encoding=latin1 kafka8-tools ...
+```
+
+
 ## Examples
 
 These examples assume a ZooKeeper instance on port 2181, and three Kafka brokers (1, 2 and 3) at ports 9091, 9092 and 9093 respectively.
@@ -172,4 +185,13 @@ These examples assume a ZooKeeper instance on port 2181, and three Kafka brokers
     ```
 
     The topic will be marked for deletion in ZooKeeper but it will only take affect as soon as the brokers involved are restarted with `delete.topic.enable=true`.
+
+9.  Read CP1253 encoded data, store them as UTF-8 in Kafka, and write them out as ISO8859-7:
+
+    ```bash
+    env JAVA_OPTS=-Dfile.encoding=cp1253 kafka8-tools push -s localhost:9092 -t encoded -p 0 -c utf8 -v < file.cp1253
+    env JAVA_OPTS=-Dfile.encoding=iso8859-7 kafka8-tools pull -s localhost:9092 -t encoded -p 0 -o 0 -c utf8 -v > file.iso7
+    ```
+
+    Note that UTF-8 is the default encoding for writing and reading from Kafka, but it was provided explicitly to highlight the different controls.
 
