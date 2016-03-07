@@ -186,6 +186,12 @@ These examples assume a ZooKeeper instance on port 2181, and three Kafka brokers
 
     The topic will be marked for deletion in ZooKeeper but it will only take affect as soon as the brokers involved are restarted with `delete.topic.enable=true`.
 
+    Note that if Zookeeper is running under a different root, you can always specify that in the server connection string, e.g.
+
+    ```bash
+    kafka8-tools topics -s localhost:2181/root/prefix -t topic1 --delete
+    ```
+
 9.  Read CP1253 encoded data, store them as UTF-8 in Kafka, and write them out as ISO8859-7:
 
     ```bash
