@@ -1,0 +1,10 @@
+#!/bin/sh
+
+[ -n "$JAVA_HOME" ] && JAVA="$JAVA_HOME/bin/java" || JAVA=java
+
+[ -n "$JAVA_OPTS" ] || JAVA_OPTS="-Xmx512m"
+
+[ -n "$CP" ] || CP='/usr/share/kafka8-tools/*'
+
+"$JAVA" -cp "$CP" $JAVA_OPTS kafka.tools.cli "$@"
+

@@ -1,13 +1,12 @@
 
 .PHONY: clean distclean
 
-c := consumer
-p := producer
+cli := kafka8-tools
 bin := bin
 
-all: $(bin)/$c.sh $(bin)/$p.sh
+all: $(bin)/$(cli).sh
 
-$(bin)/%.sh: */target/%.jar
+$(bin)/%.sh: target/%.jar
 	$(bin)/jarpack $< $@
 
 %.jar:
@@ -17,5 +16,5 @@ clean:
 	mvn clean -q
 
 distclean: clean
-	$(RM) $(bin)/$c.sh $(bin)/$p.sh
+	$(RM) $(bin)/$(cli).sh
 
